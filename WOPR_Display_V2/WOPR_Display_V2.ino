@@ -114,6 +114,8 @@ String clockSeparators [] = {" ", "-", "_"};
 String stateStrings[] = {"MENU", "RUNNING", "SETTINGS"};
 String menuStrings[] = {"MODE MOVIE", "MODE RANDOM", "MODE MESSAGE", "MODE CLOCK", "SETTINGS"};
 String settingsStrings[] = {"GMT ", "24H MODE ", "BRIGHT ", "CLK RGB ", "CLK CNT ", "CLK SEP ", "UPDATE GMT",  "NGHT DIM "};
+String tm_days[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+String tm_months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
 enum states {
   MENU = 0,
@@ -178,22 +180,19 @@ uint32_t defcon_colors[] = {
 
 // General stuff
 unsigned long countdownToClock = 0;
-
+unsigned long dateDisplayEnds = 0;
+uint8_t       timeDisplayFormat = 0;
 
 // Setup 3 AlphaNumeric displays (4 digits per display)
 Adafruit_AlphaNum4 matrix[3] = { Adafruit_AlphaNum4(), Adafruit_AlphaNum4(), Adafruit_AlphaNum4() };
 
-char displaybuffer[12] = {'-', '-', '-', ' ', '-', '-', '-', '-', ' ', '-', '-', '-'};
-
-char missile_code[12] = {'A', 'B', 'C', 'D', 'E', 'F', '0', '1', '2', '3', '4', '5'};
-
-char missile_code_movie[12] = {'C', 'P', 'E', ' ', '1', '7', '0', '4', ' ', 'T', 'K', 'S'};
-
-char missile_code_message[12] = {'L', 'O', 'L', 'Z', ' ', 'F', 'O', 'R', ' ', 'Y', 'O', 'U'};
-
+#define NUM_DIGITS 12
+char displaybuffer[NUM_DIGITS] = {'-', '-', '-', ' ', '-', '-', '-', '-', ' ', '-', '-', '-'};
+char missile_code[NUM_DIGITS] = {'A', 'B', 'C', 'D', 'E', 'F', '0', '1', '2', '3', '4', '5'};
+char missile_code_movie[NUM_DIGITS] = {'C', 'P', 'E', ' ', '1', '7', '0', '4', ' ', 'T', 'K', 'S'};
+char missile_code_message[NUM_DIGITS] = {'L', 'O', 'L', 'Z', ' ', 'F', 'O', 'R', ' ', 'Y', 'O', 'U'};
 uint8_t code_solve_order_movie[10] = {7, 1, 4, 6, 11, 2, 5, 0, 10, 9}; // 4 P 1 0 S E 7 C K T
-
-uint8_t code_solve_order_random[12] = {99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99};
+uint8_t code_solve_order_random[NUM_DIGITS] = {99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99};
 
 // Initialise the buttons using OneButton library
 OneButton Button1(BUT1, false);
@@ -223,6 +222,7 @@ void setup()
   Button1.attachClick(BUT1Press);
   Button1.attachDuringLongPress(BUT1_SaveSettings);
   Button2.attachClick(BUT2Press);
+  Button2.attachLongPressStart(BUT2LongPress);
 #ifdef HAXORZ_EDITION
   Button3.attachClick(BUT3Press);
   Button4.attachClick(BUT4Press);
@@ -507,10 +507,39 @@ void BUT2Press()
         UpdateSetting(1);
       }
     }
+    else if ( currentState == RUNNING )
+    {
+      // we are in clock mode and button 2 has been pressed
+      if (currentMode = CLOCK) {
+
+        // swap beteween date/time display
+        if (dateDisplayEnds > 0) 
+        {
+          Serial.println("Display Time");
+          dateDisplayEnds = 0;
+        }
+        else
+        {
+          Serial.println("Display Date");
+          dateDisplayEnds = 1;
+        }
+      }
+    }
   }
 
   Serial.print("Current State: ");
   Serial.println( stateStrings[(int)currentState] );
+}
+
+void BUT2LongPress()
+{
+  Serial.println("Long Button 2 Press");
+  if (currentState == RUNNING && currentMode == CLOCK)
+  {
+    Serial.print("Change display format: ");
+    timeDisplayFormat++;
+    Serial.println(timeDisplayFormat);
+  }
 }
 
 #ifdef HAXORZ_EDITION
@@ -703,8 +732,12 @@ bool CheckIsNight(struct tm timeinfo)
 }
 
 // Take the time data from the RTC and format it into a string we can display
+#define DATEANDTIME_LEN  NUM_DIGITS+1
 void DisplayTime()
 {
+
+  //Clear();  // this is causing a suble flicker
+
   if (!hasWiFi)
   {
     DisplayText("NO CLOCK");
@@ -730,27 +763,93 @@ void DisplayTime()
   }
 
   // Formt the contents of the time struct into a string for display
-  char DateAndTimeString[12];
-  String sep = clockSeparators[settings_separator];
+  char DateAndTimeString[DATEANDTIME_LEN];
 
-  int the_hour = timeinfo.tm_hour;
+  // calling Clear() everytime DisplayTime() is called causes a sublte display flicker
+  // this if/else block exists to limit calls to Clear() only when switching between
+  // date and time display.
+  //
+  // if dateDisplayEnds == 1 then a request to display the data has been made
+  // set dateDisplayEnds to some time (5 seconds) in the future
+  if (dateDisplayEnds == 1) {
+    Clear();
+    dateDisplayEnds = millis() + 5000;
+  }
+  //
+  // we're done displaying the date, swap back to time
+  else if (dateDisplayEnds < millis())
+  {
+    Clear();
+    dateDisplayEnds = 0;
+  }
 
-  // Adjust for 24 hour display mode
-  if (!settings_24H && the_hour > 12)
-    the_hour -= 12;
-
-  // Padd the time if the hour is a single digit
-  if ( the_hour < 10 )
-    sprintf(DateAndTimeString, "   %d%s%02d%s%02d", the_hour, sep, timeinfo.tm_min, sep, timeinfo.tm_sec);
+  // display current date
+  if (dateDisplayEnds > 0 && dateDisplayEnds > millis())
+  {
+    snprintf(DateAndTimeString, DATEANDTIME_LEN, " %02d/%02d/%4d", timeinfo.tm_mon, timeinfo.tm_mday, 1900 + timeinfo.tm_year);
+  }
+  //
+  // display current time
   else
-    sprintf(DateAndTimeString, "  %d%s%02d%s%02d", the_hour, sep, timeinfo.tm_min, sep, timeinfo.tm_sec);
+  {
+    // TODO: create blink setting
+
+    //String sep = clockSeparators[settings_separator];
+
+    // blink the string separator
+    static bool blink = true;
+    String sep = blink ? clockSeparators[settings_separator] : clockSeparators[0];
+    blink = !blink;
+
+    int the_hour = timeinfo.tm_hour;
+
+    // Adjust for 24 hour display mode
+    if (!settings_24H) {
+      if (the_hour > 12)
+        the_hour -= 12;
+      else if (the_hour == 0)
+        the_hour = 12;
+    }
+
+    // TODO: create display format setting
+    switch (timeDisplayFormat)
+    {
+      case 6:
+        snprintf(DateAndTimeString, DATEANDTIME_LEN, "%s %2d%s%02d %cM", tm_days[timeinfo.tm_wday], the_hour, sep, timeinfo.tm_min, (timeinfo.tm_hour > 11 ? 'P' : 'A'));
+        break;
+      case 5:
+        snprintf(DateAndTimeString, DATEANDTIME_LEN, "%s    %2d%s%02d", tm_days[timeinfo.tm_wday], the_hour, sep, timeinfo.tm_min);
+        break;
+      case 4:
+        snprintf(DateAndTimeString, DATEANDTIME_LEN, "%s %s %d",tm_days[timeinfo.tm_wday],  tm_months[timeinfo.tm_mon], timeinfo.tm_mday);
+        break;
+      case 3:
+        snprintf(DateAndTimeString, DATEANDTIME_LEN, "%2d%s%02d  %cM", the_hour, sep, timeinfo.tm_min, (timeinfo.tm_hour > 11 ? 'P' : 'A'));
+        break;
+      case 2:
+        snprintf(DateAndTimeString, DATEANDTIME_LEN, "%2d%s%02d  %02d/%02d", the_hour, sep, timeinfo.tm_min, timeinfo.tm_mon, timeinfo.tm_mday);
+        break;
+      case 1:
+        snprintf(DateAndTimeString, DATEANDTIME_LEN, "%2d %s %02d %s %02d", the_hour, sep, timeinfo.tm_min, sep, timeinfo.tm_sec);
+        break;
+      default:
+        timeDisplayFormat = 0;
+      case 0:
+        snprintf(DateAndTimeString, DATEANDTIME_LEN, "  %2d%s%02d%s%02d", the_hour, sep, timeinfo.tm_min, sep, timeinfo.tm_sec);
+        break;
+    }
+  }
 
   // Iterate through each digit on the display and populate the time, or clear the digit
   uint8_t curDisplay = 0;
   uint8_t curDigit = 0;
 
-  for ( uint8_t i = 0; i < 10; i++ )
+  for ( uint8_t i = 0; i < NUM_DIGITS; i++ )
   {
+    if (DateAndTimeString[i] == '\0')
+    {
+      break;
+    }
     matrix[curDisplay].writeDigitAscii( curDigit, DateAndTimeString[i]);
     curDigit++;
     if ( curDigit == 4 )
@@ -1001,8 +1100,7 @@ void SolveCode()
   }
 }
 
-// Clear the contents of the display buffers and update the display
-void Clear()
+void ClearDisplayBuffer()
 {
   // There are 3 LED drivers
   for ( int i = 0; i < 3; i++ )
@@ -1010,8 +1108,6 @@ void Clear()
     // There are 4 digits per LED driver
     for ( int d = 0; d < 4; d++ )
       matrix[i].writeDigitAscii( d, ' ');
-
-    matrix[i].writeDisplay();
   }
 }
 
@@ -1020,6 +1116,13 @@ void Display()
 {
   for ( int i = 0; i < 3; i++ )
     matrix[i].writeDisplay();
+}
+
+// Clear the contents of the display buffers and update the display
+void Clear()
+{
+  ClearDisplayBuffer();
+  Display();
 }
 
 void RGB_SetDefcon( byte level, bool force )

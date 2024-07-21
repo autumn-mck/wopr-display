@@ -97,6 +97,8 @@ int settings_ClockRGB = 50;
 uint8_t settings_displayBrightness = 15;
 // User settable clock separator
 uint8_t settings_separator = 0; // 0 is " ", 1 is "-", 2 is "_"
+// User settable clock display format
+uint8_t settings_timeDisplayFormat = 0;
 
 // Night dim settings
 int nightStartHour = 22;
@@ -181,7 +183,6 @@ uint32_t defcon_colors[] = {
 // General stuff
 unsigned long countdownToClock = 0;
 unsigned long dateDisplayEnds = 0;
-uint8_t       timeDisplayFormat = 0;
 
 // Setup 3 AlphaNumeric displays (4 digits per display)
 Adafruit_AlphaNum4 matrix[3] = { Adafruit_AlphaNum4(), Adafruit_AlphaNum4(), Adafruit_AlphaNum4() };
@@ -537,8 +538,9 @@ void BUT2LongPress()
   if (currentState == RUNNING && currentMode == CLOCK)
   {
     Serial.print("Change display format: ");
-    timeDisplayFormat++;
-    Serial.println(timeDisplayFormat);
+    settings_timeDisplayFormat++;
+    Serial.println(settings_timeDisplayFormat);
+    saveSettings();
   }
 }
 
@@ -786,7 +788,7 @@ void DisplayTime()
   // display current date
   if (dateDisplayEnds > 0 && dateDisplayEnds > millis())
   {
-    snprintf(DateAndTimeString, DATEANDTIME_LEN, " %02d/%02d/%4d", timeinfo.tm_mon, timeinfo.tm_mday, 1900 + timeinfo.tm_year);
+    snprintf(DateAndTimeString, DATEANDTIME_LEN, " %02d/%02d/%4d", (timeinfo.tm_mon + 1), timeinfo.tm_mday, 1900 + timeinfo.tm_year);
   }
   //
   // display current time
@@ -811,30 +813,36 @@ void DisplayTime()
         the_hour = 12;
     }
 
-    // TODO: create display format setting
-    switch (timeDisplayFormat)
+    switch (settings_timeDisplayFormat)
     {
-      case 6:
-        snprintf(DateAndTimeString, DATEANDTIME_LEN, "%s %2d%s%02d %cM", tm_days[timeinfo.tm_wday], the_hour, sep, timeinfo.tm_min, (timeinfo.tm_hour > 11 ? 'P' : 'A'));
+      case 4: // (Sun|Jun|1) 12:12 PM
+        switch (timeinfo.tm_sec % 6)
+        {
+          case 0:
+          case 1:
+            snprintf(DateAndTimeString, DATEANDTIME_LEN, "%s %2d%s%02d %cM", tm_days[timeinfo.tm_wday], the_hour, sep, timeinfo.tm_min, (timeinfo.tm_hour > 11 ? 'P' : 'A'));
+            break;
+          case 2:
+          case 3:
+            snprintf(DateAndTimeString, DATEANDTIME_LEN, "%s %2d%s%02d %cM", tm_months[timeinfo.tm_mon], the_hour, sep, timeinfo.tm_min, (timeinfo.tm_hour > 11 ? 'P' : 'A'));
+            break;
+          default:
+            snprintf(DateAndTimeString, DATEANDTIME_LEN, "%2d  %2d%s%02d %cM", timeinfo.tm_mday, the_hour, sep, timeinfo.tm_min, (timeinfo.tm_hour > 11 ? 'P' : 'A'));
+            break;
+        }
         break;
-      case 5:
-        snprintf(DateAndTimeString, DATEANDTIME_LEN, "%s    %2d%s%02d", tm_days[timeinfo.tm_wday], the_hour, sep, timeinfo.tm_min);
-        break;
-      case 4:
-        snprintf(DateAndTimeString, DATEANDTIME_LEN, "%s %s %d",tm_days[timeinfo.tm_wday],  tm_months[timeinfo.tm_mon], timeinfo.tm_mday);
-        break;
-      case 3:
+      case 3:// 12:12 PM
         snprintf(DateAndTimeString, DATEANDTIME_LEN, "%2d%s%02d  %cM", the_hour, sep, timeinfo.tm_min, (timeinfo.tm_hour > 11 ? 'P' : 'A'));
         break;
-      case 2:
-        snprintf(DateAndTimeString, DATEANDTIME_LEN, "%2d%s%02d  %02d/%02d", the_hour, sep, timeinfo.tm_min, timeinfo.tm_mon, timeinfo.tm_mday);
+      case 2: // 12:12 06/01
+        snprintf(DateAndTimeString, DATEANDTIME_LEN, "%2d%s%02d  %02d/%02d", the_hour, sep, timeinfo.tm_min, (timeinfo.tm_mon + 1), timeinfo.tm_mday);
         break;
-      case 1:
+      case 1: // 12 : 12 : 12
         snprintf(DateAndTimeString, DATEANDTIME_LEN, "%2d %s %02d %s %02d", the_hour, sep, timeinfo.tm_min, sep, timeinfo.tm_sec);
         break;
       default:
-        timeDisplayFormat = 0;
-      case 0:
+        settings_timeDisplayFormat = 0;
+      case 0: // 12:12:12
         snprintf(DateAndTimeString, DATEANDTIME_LEN, "  %2d%s%02d%s%02d", the_hour, sep, timeinfo.tm_min, sep, timeinfo.tm_sec);
         break;
     }
@@ -1347,6 +1355,9 @@ void loadSettings()
 
   ESPFlash<int> set_NightDim("/set_NightDim");
   settings_DimAtNight = (set_NightDim.get() == 1);
+
+  ESPFlash<uint8_t> set_timeDisplayFormat("/set_timeDisplayFormat");
+  settings_timeDisplayFormat = set_timeDisplayFormat.get();
 }
 
 void saveSettings()
@@ -1371,4 +1382,7 @@ void saveSettings()
 
   ESPFlash<int> set_NightDim("/set_NightDim");
   set_NightDim.set(settings_DimAtNight ? 1 : 0);
+
+  ESPFlash<uint8_t> set_timeDisplayFormat("/set_timeDisplayFormat");
+  set_timeDisplayFormat.set(settings_timeDisplayFormat);
 }

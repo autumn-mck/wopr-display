@@ -845,7 +845,7 @@ void DisplayTime()
       default:
         settings_timeDisplayFormat = 0;
       case 0: // 12:12:12
-        snprintf(DateAndTimeString, DATEANDTIME_LEN, "  %2d%s%02d%s%02d", the_hour, sep, timeinfo.tm_min, sep, timeinfo.tm_sec);
+        snprintf(DateAndTimeString, DATEANDTIME_LEN, "  %2d%s%02d%s%02d  ", the_hour, sep, timeinfo.tm_min, sep, timeinfo.tm_sec);
         break;
     }
   }

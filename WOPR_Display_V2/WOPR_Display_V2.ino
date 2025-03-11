@@ -742,9 +742,6 @@ bool CheckIsNight(struct tm timeinfo)
 #define DATEANDTIME_LEN  NUM_DIGITS+1
 void DisplayTime()
 {
-
-  //Clear();  // this is causing a suble flicker
-
   if (!hasWiFi)
   {
     DisplayText("NO CLOCK");
@@ -784,7 +781,7 @@ void DisplayTime()
   }
   //
   // we're done displaying the date, swap back to time
-  else if (dateDisplayEnds < millis())
+  else if (dateDisplayEnds < millis() && dateDisplayEnds > 0)
   {
     Clear();
     dateDisplayEnds = 0;

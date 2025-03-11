@@ -834,7 +834,7 @@ void DisplayTime()
         }
         break;
       case 3:// 12:12 PM
-        snprintf(DateAndTimeString, DATEANDTIME_LEN, "%2d%s%02d  %cM", the_hour, sep, timeinfo.tm_min, (timeinfo.tm_hour > 11 ? 'P' : 'A'));
+        snprintf(DateAndTimeString, DATEANDTIME_LEN, "  %2d%s%02d  %cM ", the_hour, sep, timeinfo.tm_min, (timeinfo.tm_hour > 11 ? 'P' : 'A'));
         break;
       case 2: // 12:12 06/01
         snprintf(DateAndTimeString, DATEANDTIME_LEN, "%2d%s%02d  %02d/%02d", the_hour, sep, timeinfo.tm_min, (timeinfo.tm_mon + 1), timeinfo.tm_mday);
@@ -845,7 +845,7 @@ void DisplayTime()
       default:
         settings_timeDisplayFormat = 0;
       case 0: // 12:12:12
-        snprintf(DateAndTimeString, DATEANDTIME_LEN, "  %2d%s%02d%s%02d  ", the_hour, sep, timeinfo.tm_min, sep, timeinfo.tm_sec);
+        snprintf(DateAndTimeString, DATEANDTIME_LEN, "   %2d%s%02d%s%02d ", the_hour, sep, timeinfo.tm_min, sep, timeinfo.tm_sec);
         break;
     }
   }

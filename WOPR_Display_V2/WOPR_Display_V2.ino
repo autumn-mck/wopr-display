@@ -105,6 +105,8 @@ int nightStartHour = 22;
 int nightEndHour = 7;
 int nightBrightness = 1;
 
+bool skipStartDisplay = true;
+
 // NTP Wifi Time
 const char* ntpServer = "pool.ntp.org";
 bool didChangeClockSettings = false;
@@ -373,6 +375,7 @@ void StartWifi()
         Serial.println("Failed to obtain time");
         DisplayText( "Time FAILED" );
         RGB_SetColor_ALL( Color(255, 0, 0) );
+        delay(1500);
       }
       else
       {
@@ -380,11 +383,13 @@ void StartWifi()
 
         DisplayText( "Time Set OK" );
         RGB_SetColor_ALL( Color(0, 0, 255) );
+        delay(1000);
       }
 
-      delay(1500);
-
+      if (!skipStartDisplay)
+      {
       DisplayText_Scroll( GetSecondsUntilXmas(), 200 );
+      }
     }
   }
 }

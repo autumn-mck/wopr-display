@@ -166,6 +166,10 @@ uint8_t solveCount = 0;
 uint8_t solveCountFinished = 10;
 byte lastDefconLevel = 0;
 
+// How long to blink the code/launching for (0 to disable)
+uint16_t loopAfterMs = 8500;
+unsigned long nextLoop = 0;
+
 // Audio stuff
 bool beeping = false;
 unsigned long nextBeep = 0;
@@ -1268,6 +1272,10 @@ void loop()
               RGB_SetDefcon(1, true);
               FillCodes();
               beepCount--;
+
+              if (beepCount == 0)
+                nextLoop = millis() + loopAfterMs;
+
               playSound(1500);
               //              ledcWriteTone(channel, 1500);
             }
@@ -1284,6 +1292,13 @@ void loop()
             playSound(0);
             //            ledcWriteTone(channel, 0 );
           }
+        }
+
+        if (nextLoop < millis() && loopAfterMs != 0 && beepCount == 0)
+        {
+          ResetCode();
+          nextLoop = millis() + loopAfterMs;
+          return;
         }
 
         // We are solved, so no point running any of the code below!

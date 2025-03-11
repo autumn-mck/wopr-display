@@ -99,6 +99,8 @@ uint8_t settings_displayBrightness = 15;
 uint8_t settings_separator = 0; // 0 is " ", 1 is "-", 2 is "_"
 // User settable clock display format
 uint8_t settings_timeDisplayFormat = 0;
+// User settable clock seperator blink
+bool settings_blinkClock = false;
 
 // Night dim settings
 int nightStartHour = 22;
@@ -117,7 +119,7 @@ bool isFirstBoot = false;
 String clockSeparators [] = {" ", "-", "_"};
 String stateStrings[] = {"MENU", "RUNNING", "SETTINGS"};
 String menuStrings[] = {"MODE MOVIE", "MODE RANDOM", "MODE MESSAGE", "MODE CLOCK", "SETTINGS"};
-String settingsStrings[] = {"GMT ", "24H MODE ", "BRIGHT ", "CLK RGB ", "CLK CNT ", "CLK SEP ", "UPDATE GMT",  "NGHT DIM "};
+String settingsStrings[] = {"GMT ", "24H MODE ", "BRIGHT ", "CLK RGB ", "CLK CNT ", "CLK SEP ", "UPDATE GMT",  "NGHT DIM ", "BLNK SEP "};
 String tm_days[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 String tm_months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
@@ -144,6 +146,7 @@ enum settings {
   SET_SEP = 5,
   SET_UPDATE_GMT = 6,
   SET_NIGHT_DIM = 7,
+  SET_BLINK_CLOCK = 8,
 } currentSetting;
 
 
@@ -661,6 +664,10 @@ void UpdateSetting( int dir )
   {
     settings_DimAtNight = ! settings_DimAtNight;
   }
+  else if ( currentSetting == SET_BLINK_CLOCK )
+  {
+    settings_blinkClock = ! settings_blinkClock;
+  }
 
   // Update the display showing whatever the new current setting is
   ShowSettings();
@@ -707,6 +714,10 @@ void ShowSettings()
   else if ( currentSetting == SET_NIGHT_DIM )
   {
     val = settings_DimAtNight ? "ON" : "OFF";
+  }
+  else if ( currentSetting == SET_BLINK_CLOCK )
+  {
+    val = settings_blinkClock ? "ON" : "OFF";
   }
 
   DisplayText( settingsStrings[(int)currentSetting] + val);
@@ -803,7 +814,8 @@ void DisplayTime()
     // blink the string separator
     static bool blink = true;
     String sep = blink ? clockSeparators[settings_separator] : clockSeparators[0];
-    blink = !blink;
+    if (settings_blinkClock)
+      blink = !blink;
 
     int the_hour = timeinfo.tm_hour;
 
@@ -1360,6 +1372,9 @@ void loadSettings()
 
   ESPFlash<uint8_t> set_timeDisplayFormat("/set_timeDisplayFormat");
   settings_timeDisplayFormat = set_timeDisplayFormat.get();
+
+  ESPFlash<int> set_blinkClock("/set_blinkClock");
+  settings_blinkClock = (set_blinkClock.get() == 1);
 }
 
 void saveSettings()
@@ -1387,4 +1402,7 @@ void saveSettings()
 
   ESPFlash<uint8_t> set_timeDisplayFormat("/set_timeDisplayFormat");
   set_timeDisplayFormat.set(settings_timeDisplayFormat);
+
+  ESPFlash<int> set_blinkClock("/set_blinkClock");
+  set_blinkClock.set(settings_blinkClock ? 1 : 0);
 }

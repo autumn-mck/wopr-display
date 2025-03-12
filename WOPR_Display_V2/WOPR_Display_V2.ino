@@ -836,7 +836,9 @@ void DisplayTime()
   if (!hasWiFi)
   {
     DisplayText("NO CLOCK");
-    RGB_SetColor_ALL( Color(0, 255, 0) );
+    RGB_SetColor_ALL(Color(255, 0, 0));
+    delay(2000);
+    BUT1Press();
     return;
   }
   // Store the current time into a struct
@@ -845,7 +847,9 @@ void DisplayTime()
   {
     Serial.println("Failed to obtain time");
     DisplayText("TIME FAILED");
-    RGB_SetColor_ALL( Color(0, 255, 0) );
+    RGB_SetColor_ALL(Color(255, 0, 0));
+    delay(2000);
+    BUT1Press();
     return;
   }
 
@@ -1340,6 +1344,15 @@ void loop()
     {
       if ( nextGnssFetch < millis() )
       {
+        if (!hasWiFi)
+        {
+          DisplayText("NO CONN");
+          RGB_SetColor_ALL(Color(255, 0, 0));
+          delay(2000);
+          BUT1Press();
+          return;
+        }
+
         if (gnssLat == 0)
         {
           DisplayText("FTCHNG GNSS");

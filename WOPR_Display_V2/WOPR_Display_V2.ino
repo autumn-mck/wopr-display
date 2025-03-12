@@ -30,6 +30,7 @@
 #include "OneButton.h" // From Library Manager
 #include "ESPFlash_Mod.h"
 #include <WiFi.h>
+#include <HTTPClient.h>
 #include "time.h"
 #include "secret.h"
 #include "rmt.h"
@@ -118,7 +119,7 @@ bool isFirstBoot = false;
 //// Program & Menu state
 String clockSeparators [] = {" ", "-", "_"};
 String stateStrings[] = {"MENU", "RUNNING", "SETTINGS"};
-String menuStrings[] = {"MODE MOVIE", "MODE RANDOM", "MODE MESSAGE", "MODE CLOCK", "SETTINGS"};
+String menuStrings[] = {"MODE MOVIE", "MODE RANDOM", "MODE MESSAGE", "MODE CLOCK", "MODE GNSS", "SETTINGS"};
 String settingsStrings[] = {"GMT ", "24H MODE ", "BRIGHT ", "CLK RGB ", "CLK CNT ", "CLK SEP ", "UPDATE GMT",  "NGHT DIM ", "BLNK SEP "};
 String tm_days[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 String tm_months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
@@ -134,7 +135,8 @@ enum modes {
   RANDOM = 1,
   MESSAGE = 2,
   CLOCK = 3,
-  SETTINGS = 4,
+  GNSS = 4,
+  SETTINGS = 5,
 } currentMode;
 
 enum settings {
@@ -169,6 +171,15 @@ byte lastDefconLevel = 0;
 // How long to blink the code/launching for (0 to disable)
 uint16_t loopAfterMs = 8500;
 unsigned long nextLoop = 0;
+
+// GNSS stuff
+uint8_t gnssCounter = 0;
+unsigned long nextGnssFetch = 0;
+float gnssLat = 0;
+float gnssLong = 0;
+float gnssAlt = 0;
+float gnssPdop = 0;
+float gnssAvgSnr = 0;
 
 // Audio stuff
 bool beeping = false;
@@ -523,7 +534,7 @@ void BUT2Press()
     else if ( currentState == RUNNING )
     {
       // we are in clock mode and button 2 has been pressed
-      if (currentMode = CLOCK) {
+      if (currentMode == CLOCK) {
 
         // swap beteween date/time display
         if (dateDisplayEnds > 0) 
@@ -537,11 +548,59 @@ void BUT2Press()
           dateDisplayEnds = 1;
         }
       }
+      else if (currentMode == GNSS)
+      {
+        Serial.println("Update GNSS");
+        gnssCounter++;
+      }
     }
   }
 
   Serial.print("Current State: ");
   Serial.println( stateStrings[(int)currentState] );
+}
+
+void updateGnss()
+{
+  HTTPClient http;
+  int httpCode = -1;
+  char woprApi[] = "https://gnss.mck.is/api/wopr";
+
+  http.begin(woprApi);
+  httpCode = http.GET();  //send GET request
+  if (httpCode != 200)
+  {
+    http.end();
+    gnssLat = 0;
+    gnssLong = 0;
+    gnssAlt = 0;
+    gnssPdop = 0;
+    gnssAvgSnr = 0;
+  }
+  else
+  {
+    String payload = http.getString();
+    http.end();
+
+    Serial.print("Response: ");
+    Serial.println(payload);
+
+    gnssLat = getNumFromJSON(payload, "latitude");
+    gnssLong = getNumFromJSON(payload, "longitude");
+    gnssAlt = getNumFromJSON(payload, "altitude");
+    gnssPdop = getNumFromJSON(payload, "pdop");
+    gnssAvgSnr = getNumFromJSON(payload, "avgSnr");
+  }
+}
+
+float getNumFromJSON(String payload, String key)
+{
+  int start = payload.indexOf(key);
+  int end = payload.indexOf(",", start);
+  if (end == -1)
+    end = payload.indexOf("}", start);
+  String str = payload.substring(start + key.length() + 2, end - 1);
+  return str.toFloat();
 }
 
 void BUT2LongPress()
@@ -866,17 +925,22 @@ void DisplayTime()
     }
   }
 
+  DisplayTextWithoutClear(DateAndTimeString);
+}
+
+void DisplayTextWithoutClear(String txt)
+{
   // Iterate through each digit on the display and populate the time, or clear the digit
   uint8_t curDisplay = 0;
   uint8_t curDigit = 0;
 
   for ( uint8_t i = 0; i < NUM_DIGITS; i++ )
   {
-    if (DateAndTimeString[i] == '\0')
+    if (txt[i] == '\0')
     {
       break;
     }
-    matrix[curDisplay].writeDigitAscii( curDigit, DateAndTimeString[i]);
+    matrix[curDisplay].writeDigitAscii( curDigit, txt[i]);
     curDigit++;
     if ( curDigit == 4 )
     {
@@ -1254,6 +1318,53 @@ void loop()
         DisplayTime();
         nextBeep = millis() + 1000;
       }
+    }
+    else if ( currentMode == GNSS )
+    {
+      if ( nextGnssFetch < millis() )
+      {
+        if (gnssLat == 0)
+        {
+          DisplayText("FTCHNG GNSS");
+          RGB_SetColor_ALL( Color(0, 0, 255) );
+        }
+
+        nextGnssFetch = millis() + 60000;
+        updateGnss();
+
+        if (gnssLat == 0)
+        {
+          Serial.println("Failed to get GNSS data");
+          DisplayText("GNSS FAILED");
+          RGB_SetColor_ALL( Color(255, 0, 0) );
+          delay(2000);
+          currentState = MENU;
+          return;
+        }
+      }
+
+      switch (gnssCounter)
+      {
+        default:
+          gnssCounter = 0;
+        case 0:
+          DisplayTextWithoutClear("LAT " + String(gnssLat) + "   ");
+          break;
+        case 1:
+          DisplayTextWithoutClear("LNG " + String(gnssLong) + "   ");
+          break;
+        case 2:
+          DisplayTextWithoutClear("ALT " + String(gnssAlt) + "   ");
+          break;
+        case 3:
+          DisplayTextWithoutClear("PDOP " + String(gnssPdop) + "   ");
+          break;
+        case 4:
+          DisplayTextWithoutClear("SNR " + String(gnssAvgSnr) + "   ");
+          break;
+      }
+
+      RGB_SetDefcon(5 - gnssCounter, false);
     }
     else
     {

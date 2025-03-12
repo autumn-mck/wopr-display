@@ -456,6 +456,10 @@ void BUT1Press()
     {
       currentState = MENU;
 
+      gnssCounter = 0;
+      nextGnssFetch = 0;
+      gnssLat = 0;
+
       DisplayText( "MENU" );
       // Reset brightness if changed by night dim
       SetDisplayBrightness(settings_displayBrightness);

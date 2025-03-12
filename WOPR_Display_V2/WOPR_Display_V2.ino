@@ -102,6 +102,8 @@ uint8_t settings_separator = 0; // 0 is " ", 1 is "-", 2 is "_"
 uint8_t settings_timeDisplayFormat = 0;
 // User settable clock seperator blink
 bool settings_blinkClock = false;
+// User settable GNSS auto cycle
+bool settings_gnssAutoCycle = true;
 
 // Night dim settings
 int nightStartHour = 22;
@@ -120,7 +122,7 @@ bool isFirstBoot = false;
 String clockSeparators [] = {" ", "-", "_"};
 String stateStrings[] = {"MENU", "RUNNING", "SETTINGS"};
 String menuStrings[] = {"MODE MOVIE", "MODE RANDOM", "MODE MESSAGE", "MODE CLOCK", "MODE GNSS", "SETTINGS"};
-String settingsStrings[] = {"GMT ", "24H MODE ", "BRIGHT ", "CLK RGB ", "CLK CNT ", "CLK SEP ", "UPDATE GMT",  "NGHT DIM ", "BLNK SEP "};
+String settingsStrings[] = {"GMT ", "24H MODE ", "BRIGHT ", "CLK RGB ", "CLK CNT ", "CLK SEP ", "UPDATE GMT",  "NGHT DIM ", "BLNK SEP ", "CYCL GNS "};
 String tm_days[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 String tm_months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
@@ -149,6 +151,7 @@ enum settings {
   SET_UPDATE_GMT = 6,
   SET_NIGHT_DIM = 7,
   SET_BLINK_CLOCK = 8,
+  SET_CYCLE_GNSS = 9,
 } currentSetting;
 
 
@@ -173,6 +176,7 @@ uint16_t loopAfterMs = 8500;
 unsigned long nextLoop = 0;
 
 // GNSS stuff
+unsigned long nextGnssCycle = 0;
 uint8_t gnssCounter = 0;
 unsigned long nextGnssFetch = 0;
 float gnssLat = 0;
@@ -731,6 +735,10 @@ void UpdateSetting( int dir )
   {
     settings_blinkClock = ! settings_blinkClock;
   }
+  else if ( currentSetting == SET_CYCLE_GNSS )
+  {
+    settings_gnssAutoCycle = ! settings_gnssAutoCycle;
+  }
 
   // Update the display showing whatever the new current setting is
   ShowSettings();
@@ -781,6 +789,10 @@ void ShowSettings()
   else if ( currentSetting == SET_BLINK_CLOCK )
   {
     val = settings_blinkClock ? "ON" : "OFF";
+  }
+  else if ( currentSetting == SET_CYCLE_GNSS )
+  {
+    val = settings_gnssAutoCycle ? "ON" : "OFF";
   }
 
   DisplayText( settingsStrings[(int)currentSetting] + val);
@@ -1327,6 +1339,7 @@ void loop()
         {
           DisplayText("FTCHNG GNSS");
           RGB_SetColor_ALL( Color(0, 0, 255) );
+          nextGnssCycle = millis() + 7000;
         }
 
         nextGnssFetch = millis() + 60000;
@@ -1341,6 +1354,12 @@ void loop()
           currentState = MENU;
           return;
         }
+      }
+
+      if (settings_gnssAutoCycle && nextGnssCycle < millis())
+      {
+        nextGnssCycle = millis() + 5000;
+        gnssCounter++;
       }
 
       switch (gnssCounter)
@@ -1501,6 +1520,9 @@ void loadSettings()
 
   ESPFlash<int> set_blinkClock("/set_blinkClock");
   settings_blinkClock = (set_blinkClock.get() == 1);
+
+  ESPFlash<uint8_t> set_CycleGnss("/set_CycleGnss");
+  settings_gnssAutoCycle = (set_CycleGnss.get() == 1);
 }
 
 void saveSettings()
@@ -1531,4 +1553,7 @@ void saveSettings()
 
   ESPFlash<int> set_blinkClock("/set_blinkClock");
   set_blinkClock.set(settings_blinkClock ? 1 : 0);
+
+  ESPFlash<uint8_t> set_CycleGnss("/set_CycleGnss");
+  set_CycleGnss.set(settings_gnssAutoCycle ? 1 : 0);
 }

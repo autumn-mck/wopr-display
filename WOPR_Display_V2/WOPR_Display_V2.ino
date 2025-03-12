@@ -106,9 +106,9 @@ bool settings_blinkClock = false;
 bool settings_gnssAutoCycle = true;
 
 // Night dim settings
-int nightStartHour = 22;
-int nightEndHour = 7;
-int nightBrightness = 1;
+uint8_t nightStartHour = 22;
+uint8_t nightEndHour = 7;
+uint8_t nightBrightness = 0;
 
 bool skipStartDisplay = true;
 
@@ -164,8 +164,8 @@ unsigned long nextTick = 0;
 unsigned long nextSolve = 0;
 uint16_t tickStep = 100;
 uint16_t solveStep = 1000;
-uint16_t solveStepMin = 4000;
-uint16_t solveStepMax = 8000;
+uint16_t solveStepMin = 2000;
+uint16_t solveStepMax = 4000;
 float solveStepMulti = 1;
 uint8_t solveCount = 0;
 uint8_t solveCountFinished = 10;
@@ -216,6 +216,7 @@ char displaybuffer[NUM_DIGITS] = {'-', '-', '-', ' ', '-', '-', '-', '-', ' ', '
 char missile_code[NUM_DIGITS] = {'A', 'B', 'C', 'D', 'E', 'F', '0', '1', '2', '3', '4', '5'};
 char missile_code_movie[NUM_DIGITS] = {'C', 'P', 'E', ' ', '1', '7', '0', '4', ' ', 'T', 'K', 'S'};
 char missile_code_message[NUM_DIGITS] = {'L', 'O', 'L', 'Z', ' ', 'F', 'O', 'R', ' ', 'Y', 'O', 'U'};
+
 uint8_t code_solve_order_movie[10] = {7, 1, 4, 6, 11, 2, 5, 0, 10, 9}; // 4 P 1 0 S E 7 C K T
 uint8_t code_solve_order_random[NUM_DIGITS] = {99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99};
 
@@ -410,7 +411,7 @@ void StartWifi()
 
       if (!skipStartDisplay)
       {
-      DisplayText_Scroll( GetSecondsUntilXmas(), 200 );
+        DisplayText_Scroll( GetSecondsUntilXmas(), 200 );
       }
     }
   }
@@ -541,7 +542,7 @@ void BUT2Press()
       if (currentMode == CLOCK) {
 
         // swap beteween date/time display
-        if (dateDisplayEnds > 0) 
+        if (dateDisplayEnds > 0)
         {
           Serial.println("Display Time");
           dateDisplayEnds = 0;
@@ -878,14 +879,9 @@ void DisplayTime()
   {
     snprintf(DateAndTimeString, DATEANDTIME_LEN, " %02d/%02d/%4d", (timeinfo.tm_mon + 1), timeinfo.tm_mday, 1900 + timeinfo.tm_year);
   }
-  //
   // display current time
   else
   {
-    // TODO: create blink setting
-
-    //String sep = clockSeparators[settings_separator];
-
     // blink the string separator
     static bool blink = true;
     String sep = blink ? clockSeparators[settings_separator] : clockSeparators[0];

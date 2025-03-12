@@ -1114,6 +1114,11 @@ void ResetCode()
 
       missile_code[i] = c;
     }
+
+    int firstSpaceIndex = random(2, 6);
+    int secondSpaceIndex = random(7, 10);
+    missile_code[firstSpaceIndex] = ' ';
+    missile_code[secondSpaceIndex] = ' ';
   }
   else if ( currentMode == MESSAGE )
   {

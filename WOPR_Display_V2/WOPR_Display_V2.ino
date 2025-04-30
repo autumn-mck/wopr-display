@@ -215,7 +215,7 @@ Adafruit_AlphaNum4 matrix[3] = { Adafruit_AlphaNum4(), Adafruit_AlphaNum4(), Ada
 char displaybuffer[NUM_DIGITS] = {'-', '-', '-', ' ', '-', '-', '-', '-', ' ', '-', '-', '-'};
 char missile_code[NUM_DIGITS] = {'A', 'B', 'C', 'D', 'E', 'F', '0', '1', '2', '3', '4', '5'};
 char missile_code_movie[NUM_DIGITS] = {'C', 'P', 'E', ' ', '1', '7', '0', '4', ' ', 'T', 'K', 'S'};
-char missile_code_message[NUM_DIGITS] = {'L', 'O', 'L', 'Z', ' ', 'F', 'O', 'R', ' ', 'Y', 'O', 'U'};
+char missile_code_message[NUM_DIGITS] = {'T', 'H', 'A', 'N', 'K', 'S', ' ', 'D', 'A', 'V', 'I', 'D'};
 
 uint8_t code_solve_order_movie[10] = {7, 1, 4, 6, 11, 2, 5, 0, 10, 9}; // 4 P 1 0 S E 7 C K T
 uint8_t code_solve_order_random[NUM_DIGITS] = {99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99};

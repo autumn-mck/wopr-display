@@ -19,10 +19,9 @@ Finally, upload the code to the WOPR. (ctrl+U or the upload button in the IDE)
 # Instructions
 
 Button 1 (right button) in menu to go through list of modes  
-Button 2 (left button) to select mode
+Button 2 (left button) to select mode  
+When in a mode, button 1 will exit to the menu
 
 In settings mode, button 1 switches which setting you are on, button 2 changes the current settings value
 
 Hold Button 1 to save/exit settings. Display will show "saving..." when triggered.
-
-If any of the clock settings are changed (GMT or DTS) then the W.O.P.R. will restart after saving settings.

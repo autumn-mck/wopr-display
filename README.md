@@ -1,6 +1,6 @@
 # W.O.P.R. Display
 
-Forked from [the original](https://github.com/UnexpectedMaker) to add some extra settings, and add support for fetching data from my [GNSS "War Room"](https://github.com/autumn-mck/gnss-war-room) project
+Forked from [the original](https://github.com/UnexpectedMaker/wopr) to add some extra settings, and add support for fetching data from my [GNSS "War Room"](https://github.com/autumn-mck/gnss-war-room) project
 
 ![codes](https://3sprockets.com.au/um/projects/wopr/wopr_codes.gif)
 

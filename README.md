@@ -8,7 +8,7 @@ Forked from [the original](https://github.com/UnexpectedMaker/wopr) to add some 
 
 Using some features (Displaying time, GNSS data) requires connecting to WiFi.
 
-Connect the WOPR via USB, and open the `WOPR_Display_V2` folder in the arduino IDE. Make sure "UM TinyS3" is selected as the board, and is detected. Modify `secret.h` to have the correct SSID and password.
+Connect the WOPR via USB, and open the `WOPR_Display_V2` folder in the arduino IDE. Install "Adafruit GFX Library", "Adafruit LED Backpack Library", and "OneButton" from within the library manager, then esp32 by Espressif Systems from within the boards manager. Make sure "UM TinyS3" is selected as the board, and is detected. Modify `secret.h` to have the correct SSID and password.
 
 (Note: may not work with QUB wifi as it usually wants a username too, I used my hotspot in the demo just to be safe)
 
